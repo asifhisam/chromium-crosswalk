@@ -305,3 +305,4 @@ vs-chromium-project.txt
 /xcodebuild
 /xwalk
 /third_party/libpxc
+/third_party/opus
