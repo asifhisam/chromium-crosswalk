@@ -306,3 +306,10 @@ vs-chromium-project.txt
 /xwalk
 /third_party/libpxc
 /third_party/opus
+third_party/apache-mime4j/
+third_party/appurify-python/
+third_party/blimp_fonts/
+third_party/grpc/
+third_party/httpcomponents-client/
+third_party/httpcomponents-core/
+
