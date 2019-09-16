@@ -57,6 +57,7 @@ import("//build/config/chrome_build.gni")
 template("process_version") {
   assert(defined(invoker.output), "Output must be defined for $target_name")
 
+
   process_only = defined(invoker.process_only) && invoker.process_only
 
   if (process_only) {
@@ -151,3 +152,4 @@ template("process_version") {
 }
 
 chrome_version_rc_template = "//chrome/app/chrome_version.rc.version"
+

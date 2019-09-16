@@ -17,6 +17,7 @@ import android.widget.FrameLayout;
 
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
+import org.chromium.content_public.browser.WebContents;
 import org.chromium.ui.base.WindowAndroid;
 
 /***
@@ -172,15 +173,11 @@ public class ContentViewRenderView extends FrameLayout {
      * @param rootWindow The {@link WindowAndroid} this render view should be linked to.
      */
     public void onNativeLibraryLoaded(WindowAndroid rootWindow) {
+        assert !mSurfaceView.getHolder().getSurface().isValid() :
+                "Surface created before native library loaded.";
         assert rootWindow != null;
         mNativeContentViewRenderView = nativeInit(rootWindow.getNativePointer());
         assert mNativeContentViewRenderView != 0;
-
-        if (mCompositingSurfaceType == CompositingSurfaceType.TEXTURE_VIEW)
-            return;
-
-        assert !mSurfaceView.getHolder().getSurface().isValid() :
-                "Surface created before native library loaded.";
         mSurfaceCallback = new SurfaceHolder.Callback() {
             @Override
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
@@ -211,22 +208,15 @@ public class ContentViewRenderView extends FrameLayout {
         mSurfaceView.setVisibility(VISIBLE);
     }
 
-    private static boolean isOpaque(int color) {
-        return ((color >> 24) & 0xFF) == 0xFF;
-    }
-
     /**
-     * Set the background color of SurfaceView or TextureView.  This method is necessary because the
+     * Sets the background color of the surface view.  This method is necessary because the
      * background color of ContentViewRenderView itself is covered by the background of
-     * SurfaceView or TextureView.
+     * SurfaceView.
      * @param color The color of the background.
      */
     public void setSurfaceViewBackgroundColor(int color) {
         if (mSurfaceView != null) {
             mSurfaceView.setBackgroundColor(color);
-        } else if (mTextureView != null) {
-            mTextureView.setOpaque(isOpaque(color));
-            mTextureView.setBackgroundColor(color);
         }
     }
 
@@ -261,10 +251,10 @@ public class ContentViewRenderView extends FrameLayout {
 
         if (mContentViewCore != null) {
             mContentViewCore.onPhysicalBackingSizeChanged(getWidth(), getHeight());
-            nativeSetCurrentContentViewCore(mNativeContentViewRenderView,
-                                            mContentViewCore.getNativeContentViewCore());
+            nativeSetCurrentWebContents(
+                    mNativeContentViewRenderView, mContentViewCore.getWebContents());
         } else {
-            nativeSetCurrentContentViewCore(mNativeContentViewRenderView, 0);
+            nativeSetCurrentWebContents(mNativeContentViewRenderView, null);
         }
     }
 
@@ -300,16 +290,6 @@ public class ContentViewRenderView extends FrameLayout {
     }
 
     /**
-    * Control whether the SurfaceView's surface is placed on top of its window.
-    * Note this only works when SurfaceView is used. For TextureView, it is not supported.
-    * @param onTop true for on top.
-    */
-    public void setZOrderOnTop(boolean onTop) {
-        if (mSurfaceView == null) return;
-        mSurfaceView.setZOrderOnTop(onTop);
-    }
-
-    /**
      * Enter or leave overlay video mode.
      * @param enabled Whether overlay mode is enabled.
      */
@@ -324,7 +304,7 @@ public class ContentViewRenderView extends FrameLayout {
     }
 
     @CalledByNative
-    private void onSwapBuffersCompleted() {
+    private void didSwapFrame() {
         if (!mFirstFrameReceived && mContentViewCore != null && mContentViewCore.getWebContents().isReady()) {
             mFirstFrameReceived = true;
             if (mFirstRenderedFrameListener != null) {
@@ -346,8 +326,8 @@ public class ContentViewRenderView extends FrameLayout {
 
     private native long nativeInit(long rootWindowNativePointer);
     private native void nativeDestroy(long nativeContentViewRenderView);
-    private native void nativeSetCurrentContentViewCore(long nativeContentViewRenderView,
-            long nativeContentViewCore);
+    private native void nativeSetCurrentWebContents(
+            long nativeContentViewRenderView, WebContents webContents);
     private native void nativeSurfaceCreated(long nativeContentViewRenderView);
     private native void nativeSurfaceDestroyed(long nativeContentViewRenderView);
     private native void nativeSurfaceChanged(long nativeContentViewRenderView,
